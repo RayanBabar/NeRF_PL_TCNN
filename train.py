@@ -73,7 +73,7 @@ class NeRFSystem(LightningModule):
             results[k] = torch.cat(v, 0)
         return results
 
-    def setup(self, stage):
+    def prepare_data(self):
         dataset = dataset_dict[self.hparams.dataset_name]
         kwargs = {'root_dir': self.hparams.root_dir,
                   'img_wh': tuple(self.hparams.img_wh)}
