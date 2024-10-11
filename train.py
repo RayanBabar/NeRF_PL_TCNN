@@ -24,6 +24,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
+import torch.multiprocessing as mp
+
 class NeRFSystem(LightningModule):
     def __init__(self, hparams):
         super(NeRFSystem, self).__init__()
@@ -93,14 +95,16 @@ class NeRFSystem(LightningModule):
                           shuffle=True,
                           num_workers=3,
                           batch_size=self.hparams.batch_size,
-                          pin_memory=True)
+                          pin_memory=True,
+                          persistent_workers=True)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset,
                           shuffle=False,
                           num_workers=3,
                           batch_size=1,
-                          pin_memory=True)
+                          pin_memory=True,
+                          persistent_workers=True)
 
     def training_step(self, batch, batch_nb):
         rays, rgbs = self.decode_batch(batch)
@@ -169,6 +173,7 @@ class NeRFSystem(LightningModule):
 
 
 if __name__ == '__main__':
+    mp.set_start_method('spawn', force=True)
 
     args = opts()
     system = NeRFSystem(args)
