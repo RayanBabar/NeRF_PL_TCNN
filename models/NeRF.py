@@ -116,7 +116,7 @@ class NeRF(nn.Module):
         xyz_encoded = torch.cat([input_xyz, xyz_encoded], dim=-1)
         xyz_encoded = self.block2(xyz_encoded)
 
-        sigma = torch.relu(self.sigma_network(xyz_encoded))
+        sigma = self.sigma_network(xyz_encoded)
         if sigma_only:
             return sigma
 
