@@ -93,16 +93,18 @@ class NeRFSystem(LightningModule):
     def train_dataloader(self):
         return DataLoader(self.train_dataset,
                           shuffle=True,
-                          num_workers=1,
+                          num_workers=4,
                           batch_size=self.hparams.batch_size,
-                          pin_memory=True)
+                          pin_memory=True,
+                          persistent_workers=True)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset,
                           shuffle=False,
-                          num_workers=1,
+                          num_workers=4,
                           batch_size=1,
-                          pin_memory=True)
+                          pin_memory=True,
+                          persistent_workers=True)
 
     def training_step(self, batch, batch_nb):
         rays, rgbs = self.decode_batch(batch)
