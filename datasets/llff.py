@@ -267,7 +267,7 @@ class LLFFDataset(Dataset):
                 radii = np.percentile(np.abs(self.poses[..., 3]), 90, axis=0)
                 self.poses_test = create_spiral_poses(radii, focus_depth)
             else:
-                radius = 5 * self.bounds.min()
+                radius = 1.1 * self.bounds.min()
                 self.poses_test = create_spheric_poses(radius)
 
     def define_transforms(self):
@@ -298,7 +298,7 @@ class LLFFDataset(Dataset):
                                               self.focal, 1.0, rays_o, rays_d)
             else:
                 near = self.bounds.min()
-                far = min(8 * near, self.bounds.max())
+                far = max(8 * near, self.bounds.max())
 
             rays = torch.cat([rays_o, rays_d, 
                               near*torch.ones_like(rays_o[:, :1]),
