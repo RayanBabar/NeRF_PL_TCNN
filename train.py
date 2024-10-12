@@ -203,7 +203,8 @@ if __name__ == '__main__':
                       strategy='ddp' if args.num_gpus > 1 else 'auto',
                       num_sanity_val_steps=1,
                       benchmark=True,
-                      profiler="advanced" if args.num_gpus == 1 else None)
+                      profiler="advanced" if args.num_gpus == 1 else None,
+                      gradient_clip_val=1.0)
 
     # Fit model and resume from checkpoint if necessary
     if args.ckpt_path is not None:
