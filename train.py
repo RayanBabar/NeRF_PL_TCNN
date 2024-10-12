@@ -27,6 +27,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
 import torch.multiprocessing as mp
+import torch.distributed as dist
 
 class NeRFSystem(LightningModule):
     def __init__(self, hparams):
@@ -164,8 +165,14 @@ class NeRFSystem(LightningModule):
             # Log aggregated values for monitoring
             self.log('val/loss', mean_loss, prog_bar=True, logger=True, sync_dist=True)
             self.log('val/psnr', mean_psnr, prog_bar=True, logger=True, sync_dist=True)
-            print(mean_psnr)
-
+            
+            if dist.is_initialized():  # Check if distributed mode is initialized
+                rank = dist.get_rank()
+                if rank == 0:
+                    print(mean_psnr)
+            else:
+                # If not using distributed training, just print normally
+                print(mean_psnr)
             return {
                 'progress_bar': {'val_loss': mean_loss, 'val_psnr': mean_psnr},
                 'log': {'val/loss': mean_loss, 'val/psnr': mean_psnr}
