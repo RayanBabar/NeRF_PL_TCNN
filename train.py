@@ -68,10 +68,14 @@ class NeRFSystem(LightningModule):
             )
 
             for k, v in rendered_ray_chunks.items():
+                if torch.isnan(v).any() or torch.isinf(v).any():
+                    print(f"NaN or Inf detected in output {k}!")
                 results[k] += [v]
 
         for k, v in results.items():
             results[k] = torch.cat(v, 0)
+            if torch.isnan(results[k]).any() or torch.isinf(results[k]).any():
+                print(f"NaN or Inf detected after concatenation in {k}!")
         return results
 
     def setup(self, stage):
@@ -110,17 +114,10 @@ class NeRFSystem(LightningModule):
     def training_step(self, batch, batch_nb):
         rays, rgbs = self.decode_batch(batch)
 
-        if torch.isnan(rays).any() or torch.isinf(rays).any():
-            print("NaN or Inf found in input rays")
-        if torch.isnan(rgbs).any() or torch.isinf(rgbs).any():
-            print("NaN or Inf found in input rgbs")
-
         results = self(rays)
 
         # Compute loss
         train_loss = self.loss(results, rgbs)
-        if torch.isnan(train_loss).any():
-            print("NaN detected in loss!")
         typ = 'fine' if 'rgb_fine' in results else 'coarse'
 
         # Compute PSNR
