@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 import os, sys
 from opt import opts
 import torch
@@ -117,12 +119,12 @@ class NeRFSystem(LightningModule):
             train_psnr = psnr(results[f'rgb_{typ}'], rgbs)
 
         # Log training loss and PSNR for checkpoint monitoring
-        self.log('train/loss', train_loss, prog_bar=True, logger=True)
-        self.log('train/psnr', train_psnr, prog_bar=True, logger=True)
+        self.log('train/loss', train_loss, prog_bar=True, logger=True, sync_dist=True)
+        self.log('train/psnr', train_psnr, prog_bar=True, logger=True, sync_dist=True)
 
         # Log learning rate
         current_lr = get_learning_rate(self.optimizer)
-        self.log('lr', current_lr, prog_bar=True, logger=True)
+        self.log('lr', current_lr, prog_bar=True, logger=True, sync_dist=True)
 
         return {'loss': train_loss, 'train_psnr': train_psnr}
 
@@ -148,8 +150,8 @@ class NeRFSystem(LightningModule):
         val_psnr = psnr(results[f'rgb_{typ}'], rgbs)
 
         # Log validation loss and PSNR for checkpoint monitoring
-        self.log('val/loss', val_loss, prog_bar=True, logger=True)
-        self.log('val/psnr', val_psnr, prog_bar=True, logger=True)
+        self.log('val/loss', val_loss, prog_bar=True, logger=True, sync_dist=True)
+        self.log('val/psnr', val_psnr, prog_bar=True, logger=True, sync_dist=True)
 
         return {'val_loss': val_loss, 'val_psnr': val_psnr}
 
@@ -160,8 +162,9 @@ class NeRFSystem(LightningModule):
             mean_psnr = torch.stack([x['val_psnr'] for x in outputs]).mean()
 
             # Log aggregated values for monitoring
-            self.log('val/loss', mean_loss, prog_bar=True, logger=True)
-            self.log('val/psnr', mean_psnr, prog_bar=True, logger=True)
+            self.log('val/loss', mean_loss, prog_bar=True, logger=True, sync_dist=True)
+            self.log('val/psnr', mean_psnr, prog_bar=True, logger=True, sync_dist=True)
+            print(mean_psnr)
 
             return {
                 'progress_bar': {'val_loss': mean_loss, 'val_psnr': mean_psnr},
@@ -172,7 +175,7 @@ class NeRFSystem(LightningModule):
 
 if __name__ == '__main__':
     mp.set_start_method('spawn', force=True)
-    
+
     args = opts()
     system = NeRFSystem(args)
 
