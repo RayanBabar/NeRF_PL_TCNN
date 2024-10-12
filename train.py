@@ -25,6 +25,7 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
 import torch.multiprocessing as mp
+import warnings
 
 class NeRFSystem(LightningModule):
     def __init__(self, hparams):
@@ -181,6 +182,8 @@ class NeRFSystem(LightningModule):
 
 
 if __name__ == '__main__':
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
     mp.set_start_method('spawn', force=True)
 
     args = opts()
