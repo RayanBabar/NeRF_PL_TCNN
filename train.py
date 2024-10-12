@@ -108,10 +108,18 @@ class NeRFSystem(LightningModule):
 
     def training_step(self, batch, batch_nb):
         rays, rgbs = self.decode_batch(batch)
+
+        if torch.isnan(rays).any() or torch.isinf(rays).any():
+            print("NaN or Inf found in input rays")
+        if torch.isnan(rgbs).any() or torch.isinf(rgbs).any():
+            print("NaN or Inf found in input rgbs")
+
         results = self(rays)
 
         # Compute loss
         train_loss = self.loss(results, rgbs)
+        if torch.isnan(train_loss).any():
+            print("NaN detected in loss!")
         typ = 'fine' if 'rgb_fine' in results else 'coarse'
 
         # Compute PSNR
@@ -203,8 +211,7 @@ if __name__ == '__main__':
                       strategy='ddp' if args.num_gpus > 1 else 'auto',
                       num_sanity_val_steps=1,
                       benchmark=True,
-                      profiler="advanced" if args.num_gpus == 1 else None,
-                      gradient_clip_val=1.0)
+                      profiler="advanced" if args.num_gpus == 1 else None)
 
     # Fit model and resume from checkpoint if necessary
     if args.ckpt_path is not None:
