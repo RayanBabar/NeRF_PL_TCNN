@@ -24,9 +24,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 
-import torch.multiprocessing as mp
-import warnings
-
 class NeRFSystem(LightningModule):
     def __init__(self, hparams):
         super(NeRFSystem, self).__init__()
@@ -68,17 +65,13 @@ class NeRFSystem(LightningModule):
             )
 
             for k, v in rendered_ray_chunks.items():
-                if torch.isnan(v).any() or torch.isinf(v).any():
-                    print(f"NaN or Inf detected in output {k}!")
                 results[k] += [v]
 
         for k, v in results.items():
             results[k] = torch.cat(v, 0)
-            if torch.isnan(results[k]).any() or torch.isinf(results[k]).any():
-                print(f"NaN or Inf detected after concatenation in {k}!")
         return results
 
-    def setup(self, stage):
+    def prepare_data(self):
         dataset = dataset_dict[self.hparams.dataset_name]
         kwargs = {'root_dir': self.hparams.root_dir,
                   'img_wh': tuple(self.hparams.img_wh)}
@@ -98,22 +91,19 @@ class NeRFSystem(LightningModule):
     def train_dataloader(self):
         return DataLoader(self.train_dataset,
                           shuffle=True,
-                          num_workers=3,
+                          num_workers=4,
                           batch_size=self.hparams.batch_size,
-                          pin_memory=True,
-                          persistent_workers=True)
+                          pin_memory=True)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset,
                           shuffle=False,
-                          num_workers=3,
+                          num_workers=4,
                           batch_size=1,
-                          pin_memory=True,
-                          persistent_workers=True)
+                          pin_memory=True)
 
     def training_step(self, batch, batch_nb):
         rays, rgbs = self.decode_batch(batch)
-
         results = self(rays)
 
         # Compute loss
@@ -125,12 +115,12 @@ class NeRFSystem(LightningModule):
             train_psnr = psnr(results[f'rgb_{typ}'], rgbs)
 
         # Log training loss and PSNR for checkpoint monitoring
-        self.log('train/loss', train_loss, prog_bar=True, logger=True, sync_dist=True)
-        self.log('train/psnr', train_psnr, prog_bar=True, logger=True, sync_dist=True)
+        self.log('train/loss', train_loss, prog_bar=True, logger=True)
+        self.log('train/psnr', train_psnr, prog_bar=True, logger=True)
 
         # Log learning rate
         current_lr = get_learning_rate(self.optimizer)
-        self.log('lr', current_lr, prog_bar=True, logger=True, sync_dist=True)
+        self.log('lr', current_lr, prog_bar=True, logger=True)
 
         return {'loss': train_loss, 'train_psnr': train_psnr}
 
@@ -156,8 +146,8 @@ class NeRFSystem(LightningModule):
         val_psnr = psnr(results[f'rgb_{typ}'], rgbs)
 
         # Log validation loss and PSNR for checkpoint monitoring
-        self.log('val/loss', val_loss, prog_bar=True, logger=True, sync_dist=True)
-        self.log('val/psnr', val_psnr, prog_bar=True, logger=True, sync_dist=True)
+        self.log('val/loss', val_loss, prog_bar=True, logger=True)
+        self.log('val/psnr', val_psnr, prog_bar=True, logger=True)
 
         return {'val_loss': val_loss, 'val_psnr': val_psnr}
 
@@ -168,8 +158,8 @@ class NeRFSystem(LightningModule):
             mean_psnr = torch.stack([x['val_psnr'] for x in outputs]).mean()
 
             # Log aggregated values for monitoring
-            self.log('val/loss', mean_loss, prog_bar=True, logger=True, sync_dist=True)
-            self.log('val/psnr', mean_psnr, prog_bar=True, logger=True, sync_dist=True)
+            self.log('val/loss', mean_loss, prog_bar=True, logger=True)
+            self.log('val/psnr', mean_psnr, prog_bar=True, logger=True)
 
             return {
                 'progress_bar': {'val_loss': mean_loss, 'val_psnr': mean_psnr},
@@ -179,10 +169,6 @@ class NeRFSystem(LightningModule):
 
 
 if __name__ == '__main__':
-    warnings.filterwarnings("ignore", category=FutureWarning)
-
-    mp.set_start_method('spawn', force=True)
-
     args = opts()
     system = NeRFSystem(args)
 
