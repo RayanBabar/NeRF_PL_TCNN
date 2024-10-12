@@ -298,7 +298,7 @@ class LLFFDataset(Dataset):
                                               self.focal, 1.0, rays_o, rays_d)
             else:
                 near = self.bounds.min()
-                far = max(8 * near, self.bounds.max())
+                far = min(8 * near, self.bounds.max())
 
             rays = torch.cat([rays_o, rays_d, 
                               near*torch.ones_like(rays_o[:, :1]),
